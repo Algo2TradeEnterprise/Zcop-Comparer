@@ -74,7 +74,7 @@ Public Class CompareHelper
                 _cts.Token.ThrowIfCancellationRequested()
                 counter += 1
                 OnHeartbeatSub(String.Format("Comparing scores # {0}/{1}", counter, empScoreDetails.Count))
-                CompareAllScores(runningEmp.Value)
+                CompareAllScores(runningEmp.Value, mappingSkills)
             Next
             OnHeartbeatSub("")
 
@@ -167,16 +167,16 @@ Public Class CompareHelper
         End If
     End Function
 
-    Private Sub CompareAllScores(ByRef scoreData As ScoreDetails)
+    Private Sub CompareAllScores(ByRef scoreData As ScoreDetails, ByVal mappingList As List(Of String))
         If scoreData IsNot Nothing AndAlso scoreData.Fields IsNot Nothing AndAlso scoreData.Fields.Count > 0 Then
             For Each runningField In scoreData.Fields
                 _cts.Token.ThrowIfCancellationRequested()
-                CompareFieldScore(runningField.Value, runningField.Key)
+                CompareFieldScore(runningField.Value, runningField.Key, mappingList)
             Next
         End If
     End Sub
 
-    Private Sub CompareFieldScore(ByRef fieldData As Field, ByVal fieldName As String)
+    Private Sub CompareFieldScore(ByRef fieldData As Field, ByVal fieldName As String, ByVal mappingList As List(Of String))
         If fieldData IsNot Nothing AndAlso (fieldData.OldFileValue IsNot Nothing OrElse fieldData.NewFileValue IsNot Nothing) Then
             Dim oldFileData() As String = fieldData.OldFileData
             Dim newFileData() As String = fieldData.NewFileData
@@ -242,7 +242,7 @@ Public Class CompareHelper
                         Dim indexNumber As Integer = 0
                         If IsSkillNameExists(newFileData(i), oldFileData, indexNumber) Then
                             If Not newFileData(i).Trim.ToUpper = oldFileData(indexNumber).Trim.ToUpper AndAlso Not oldFileData.Contains(newFileData(i)) Then
-                                Dim scoreUpdate As String = GetScoreUpdate(oldFileData(indexNumber), newFileData(i))
+                                Dim scoreUpdate As String = GetScoreUpdate(oldFileData(indexNumber), newFileData(i), mappingList)
                                 If scoreUpdate IsNot Nothing Then
                                     If updatedSkills Is Nothing Then updatedSkills = New List(Of String)
                                     updatedSkills.Add(scoreUpdate)
@@ -257,34 +257,42 @@ Public Class CompareHelper
                 .Added = addedSkills,
                 .Removed = removedSkills,
                 .Updated = updatedSkills,
-                .OverallChange = GetSkillString(addedSkills, removedSkills, updatedSkills)
+                .OverallChange = GetSkillString(addedSkills, removedSkills, updatedSkills, mappingList)
             }
         End If
     End Sub
 
-    Private Function GetSkillString(ByVal addedSkillList As List(Of String), ByVal removedSkillList As List(Of String), ByVal updatedSkillList As List(Of String)) As String
+    Private Function GetSkillString(ByVal addedSkillList As List(Of String), ByVal removedSkillList As List(Of String), ByVal updatedSkillList As List(Of String), ByVal mappingList As List(Of String)) As String
         Dim ret As String = Nothing
         Dim skill As String = Nothing
         If addedSkillList IsNot Nothing AndAlso addedSkillList.Count > 0 Then
             For Each runningSkill In addedSkillList
                 _cts.Token.ThrowIfCancellationRequested()
-                skill = String.Format("{0}{1}(+){2},", skill, vbNewLine, runningSkill)
+                If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(runningSkill).Trim, StringComparer.OrdinalIgnoreCase) Then
+                    skill = String.Format("{0}{1}(+){2}", skill, vbNewLine, runningSkill)
+                Else
+                    skill = String.Format("{0}{1}(+){2} **************", skill, vbNewLine, runningSkill)
+                End If
             Next
         End If
         If removedSkillList IsNot Nothing AndAlso removedSkillList.Count > 0 Then
             For Each runningSkill In removedSkillList
                 _cts.Token.ThrowIfCancellationRequested()
-                skill = String.Format("{0}{1}(-){2},", skill, vbNewLine, runningSkill)
+                If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(runningSkill).Trim, StringComparer.OrdinalIgnoreCase) Then
+                    skill = String.Format("{0}{1}(-){2}", skill, vbNewLine, runningSkill)
+                Else
+                    skill = String.Format("{0}{1}(-){2} **************", skill, vbNewLine, runningSkill)
+                End If
             Next
         End If
         If updatedSkillList IsNot Nothing AndAlso updatedSkillList.Count > 0 Then
             For Each runningSkill In updatedSkillList
                 _cts.Token.ThrowIfCancellationRequested()
-                skill = String.Format("{0}{1}{2},", skill, vbNewLine, runningSkill)
+                skill = String.Format("{0}{1}{2}", skill, vbNewLine, runningSkill)
             Next
         End If
         If skill IsNot Nothing AndAlso skill.Count > 0 Then
-            ret = skill.Trim.Substring(0, skill.Trim.Count - 1)
+            ret = skill.Trim
         End If
         Return ret
     End Function
@@ -296,19 +304,19 @@ Public Class CompareHelper
             For Each runningSkill In skillList
                 _cts.Token.ThrowIfCancellationRequested()
                 If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(runningSkill).Trim, StringComparer.OrdinalIgnoreCase) Then
-                    skill = String.Format("{0}{1}{2},", skill, vbNewLine, runningSkill)
+                    skill = String.Format("{0}{1}{2}", skill, vbNewLine, runningSkill)
                 Else
-                    skill = String.Format("{0}{1}{2} **************,", skill, vbNewLine, runningSkill)
+                    skill = String.Format("{0}{1}{2} **************", skill, vbNewLine, runningSkill)
                 End If
             Next
         End If
         If skill IsNot Nothing AndAlso skill.Count > 0 Then
-            ret = skill.Trim.Substring(0, skill.Trim.Count - 1)
+            ret = skill.Trim
         End If
         Return ret
     End Function
 
-    Private Function GetScoreUpdate(ByVal oldSkillScore As String, ByVal newSkillScore As String) As String
+    Private Function GetScoreUpdate(ByVal oldSkillScore As String, ByVal newSkillScore As String, ByVal mappingList As List(Of String)) As String
         Dim ret As String = Nothing
         Dim oldScore As String = GetScore(oldSkillScore)
         Dim newScore As String = GetScore(newSkillScore)
@@ -317,17 +325,33 @@ Public Class CompareHelper
             If IsNumeric(oldScore) AndAlso IsNumeric(newScore) Then
                 Dim delta As Decimal = Val(newScore) - Val(oldScore)
                 If delta > 0 Then
-                    ret = String.Format("(+){0}({1})", GetSkillName(newSkillScore), delta)
+                    If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(newSkillScore).Trim, StringComparer.OrdinalIgnoreCase) Then
+                        ret = String.Format("(+){0}({1})", GetSkillName(newSkillScore), delta)
+                    Else
+                        ret = String.Format("(+){0}({1}) **************", GetSkillName(newSkillScore), delta)
+                    End If
                 ElseIf delta < 0 Then
-                    ret = String.Format("(-){0}({1})", GetSkillName(newSkillScore), delta)
+                    If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(newSkillScore).Trim, StringComparer.OrdinalIgnoreCase) Then
+                        ret = String.Format("(-){0}({1})", GetSkillName(newSkillScore), Math.Abs(delta))
+                    Else
+                        ret = String.Format("(-){0}({1}) **************", GetSkillName(newSkillScore), Math.Abs(delta))
+                    End If
                 End If
             Else
                 Dim oldSubScore As String = oldScore(1)
                 Dim newSubScore As String = newScore(1)
                 If Val(newSubScore) > Val(oldSubScore) Then
-                    ret = String.Format("(+){0}", newSkillScore)
+                    If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(newSkillScore).Trim, StringComparer.OrdinalIgnoreCase) Then
+                        ret = String.Format("(+){0}", newSkillScore)
+                    Else
+                        ret = String.Format("(+){0} **************", newSkillScore)
+                    End If
                 ElseIf Val(newSubScore) < Val(oldSubScore) Then
-                    ret = String.Format("(-){0}", newSkillScore)
+                    If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(newSkillScore).Trim, StringComparer.OrdinalIgnoreCase) Then
+                        ret = String.Format("(-){0}", newSkillScore)
+                    Else
+                        ret = String.Format("(-){0} **************", newSkillScore)
+                    End If
                 End If
             End If
         End If
