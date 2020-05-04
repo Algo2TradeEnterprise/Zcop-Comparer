@@ -89,18 +89,18 @@ Public Class CompareHelper
                 _cts.Token.ThrowIfCancellationRequested()
                 Dim fieldName As String = _fileSchema.ElementAt(fieldCount).Value
                 clmCtr += 1
-                output(0, clmCtr) = String.Format("OLD {0}", fieldName.ToUpper)
+                output(0, clmCtr) = String.Format("OLD_{0}", fieldName.ToUpper)
                 clmCtr += 1
-                output(0, clmCtr) = String.Format("NEW {0}", fieldName.ToUpper)
+                output(0, clmCtr) = String.Format("NEW_{0}", fieldName.ToUpper)
                 clmCtr += 1
-                output(0, clmCtr) = String.Format("DELTA {0}", fieldName.ToUpper)
+                output(0, clmCtr) = String.Format("DELTA_{0}", fieldName.ToUpper)
             Next
             clmCtr += 1
-            output(0, clmCtr) = "Manually Updated"
+            output(0, clmCtr) = "MANUALLY_UPDATED"
             clmCtr += 1
-            output(0, clmCtr) = "System Updated"
+            output(0, clmCtr) = "SYSTEM_UPDATED"
             clmCtr += 1
-            output(0, clmCtr) = "Overall Updated"
+            output(0, clmCtr) = "OVERALL_UPDATED"
 
             'Writing Data
             Dim rowCtr As Integer = 0
