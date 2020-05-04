@@ -296,9 +296,9 @@ Public Class CompareHelper
             For Each runningSkill In skillList
                 _cts.Token.ThrowIfCancellationRequested()
                 If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(runningSkill).Trim, StringComparer.OrdinalIgnoreCase) Then
-                    skill = String.Format("{0}{1}{2} **************,", skill, vbNewLine, runningSkill)
-                Else
                     skill = String.Format("{0}{1}{2},", skill, vbNewLine, runningSkill)
+                Else
+                    skill = String.Format("{0}{1}{2} **************,", skill, vbNewLine, runningSkill)
                 End If
             Next
         End If
