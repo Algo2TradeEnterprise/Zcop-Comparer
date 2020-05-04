@@ -251,6 +251,12 @@ Public Class ExcelHelper
         Console.WriteLine("Marking original color")
         SetCellBackColor(1, 1, OpeningColor)
     End Sub
+    Public Sub AutoSizeColumnWidth(ByVal columnCtr As Integer)
+        Console.WriteLine("Auto size whole column")
+        Dim rg As Excel.Range = _wSheetInstance.Columns(String.Format("{0}:{1}", GetColumnName(columnCtr), GetColumnName(columnCtr))) ' delete the specific row
+        rg.Columns.AutoFit()
+        rg = Nothing
+    End Sub
     Public Sub ClearWholeColumn(ByVal columnCtr As Integer)
         Console.WriteLine("Clearing whole column")
         Dim rg As Excel.Range = _wSheetInstance.Columns(String.Format("{0}:{1}", GetColumnName(columnCtr), GetColumnName(columnCtr))) ' delete the specific row

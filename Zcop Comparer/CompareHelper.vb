@@ -161,6 +161,10 @@ Public Class CompareHelper
                 xlHlpr.WriteArrayToExcel(output, range)
                 OnHeartbeat(String.Format("Output file available at:{0}", Path.GetDirectoryName(outputFilename)))
 
+                For i As Integer = 2 To 13
+                    xlHlpr.AutoSizeColumnWidth(i)
+                Next
+
                 RemoveHandler xlHlpr.Heartbeat, AddressOf OnHeartbeat
                 RemoveHandler xlHlpr.WaitingFor, AddressOf OnWaitingFor
             End Using
@@ -271,7 +275,7 @@ Public Class CompareHelper
                 If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(runningSkill).Trim, StringComparer.OrdinalIgnoreCase) Then
                     skill = String.Format("{0}{1}(+){2}", skill, vbNewLine, runningSkill)
                 Else
-                    skill = String.Format("{0}{1}(+){2} **************", skill, vbNewLine, runningSkill)
+                    skill = String.Format("{0}{1}(+){2}**************", skill, vbNewLine, runningSkill)
                 End If
             Next
         End If
@@ -281,7 +285,7 @@ Public Class CompareHelper
                 If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(runningSkill).Trim, StringComparer.OrdinalIgnoreCase) Then
                     skill = String.Format("{0}{1}(-){2}", skill, vbNewLine, runningSkill)
                 Else
-                    skill = String.Format("{0}{1}(-){2} **************", skill, vbNewLine, runningSkill)
+                    skill = String.Format("{0}{1}(-){2}**************", skill, vbNewLine, runningSkill)
                 End If
             Next
         End If
@@ -306,7 +310,7 @@ Public Class CompareHelper
                 If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(runningSkill).Trim, StringComparer.OrdinalIgnoreCase) Then
                     skill = String.Format("{0}{1}{2}", skill, vbNewLine, runningSkill)
                 Else
-                    skill = String.Format("{0}{1}{2} **************", skill, vbNewLine, runningSkill)
+                    skill = String.Format("{0}{1}{2}**************", skill, vbNewLine, runningSkill)
                 End If
             Next
         End If
@@ -328,13 +332,13 @@ Public Class CompareHelper
                     If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(newSkillScore).Trim, StringComparer.OrdinalIgnoreCase) Then
                         ret = String.Format("(+){0}({1})", GetSkillName(newSkillScore), delta)
                     Else
-                        ret = String.Format("(+){0}({1}) **************", GetSkillName(newSkillScore), delta)
+                        ret = String.Format("(+){0}({1})**************", GetSkillName(newSkillScore), delta)
                     End If
                 ElseIf delta < 0 Then
                     If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(newSkillScore).Trim, StringComparer.OrdinalIgnoreCase) Then
                         ret = String.Format("(-){0}({1})", GetSkillName(newSkillScore), Math.Abs(delta))
                     Else
-                        ret = String.Format("(-){0}({1}) **************", GetSkillName(newSkillScore), Math.Abs(delta))
+                        ret = String.Format("(-){0}({1})**************", GetSkillName(newSkillScore), Math.Abs(delta))
                     End If
                 End If
             Else
@@ -344,13 +348,13 @@ Public Class CompareHelper
                     If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(newSkillScore).Trim, StringComparer.OrdinalIgnoreCase) Then
                         ret = String.Format("(+){0}", newSkillScore)
                     Else
-                        ret = String.Format("(+){0} **************", newSkillScore)
+                        ret = String.Format("(+){0}**************", newSkillScore)
                     End If
                 ElseIf Val(newSubScore) < Val(oldSubScore) Then
                     If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(newSkillScore).Trim, StringComparer.OrdinalIgnoreCase) Then
                         ret = String.Format("(-){0}", newSkillScore)
                     Else
-                        ret = String.Format("(-){0} **************", newSkillScore)
+                        ret = String.Format("(-){0}**************", newSkillScore)
                     End If
                 End If
             End If
