@@ -35,6 +35,7 @@ Public Class CompareHelper
     Private ReadOnly _mappingFilePath As String
     Private ReadOnly _fileSchema As Dictionary(Of String, String)
     Private ReadOnly _mappingFileSchema As Dictionary(Of String, String)
+    Private _mappingInfos As List(Of MappingDetails) = Nothing
 
     Public Sub New(ByVal canceller As CancellationTokenSource, ByVal oldFilePath As String, ByVal newFilePath As String, ByVal mappingFilePath As String)
         _cts = canceller
@@ -65,7 +66,7 @@ Public Class CompareHelper
         Dim empScoreDetails As Dictionary(Of String, ScoreDetails) = Nothing
         ReadRequiedDataFromFile(_oldFilePath, "Old", empScoreDetails)
         ReadRequiedDataFromFile(_newFilePath, "New", empScoreDetails)
-        Dim mappingSkills As List(Of String) = ReadRequiedMappingFile(_mappingFilePath)
+        Dim mappingSkills As List(Of String) = ReadRequiedMappingFile(_mappingFilePath, _mappingInfos)
         'Start Comparison
         If empScoreDetails IsNot Nothing AndAlso empScoreDetails.Count > 0 Then
             OnHeartbeat("Comparing score")
@@ -273,9 +274,9 @@ Public Class CompareHelper
             For Each runningSkill In addedSkillList
                 _cts.Token.ThrowIfCancellationRequested()
                 If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(runningSkill).Trim, StringComparer.OrdinalIgnoreCase) Then
-                    skill = String.Format("{0}{1}(+){2}", skill, vbNewLine, runningSkill)
+                    skill = String.Format("{0}{1}(+){2}{3}", skill, vbNewLine, runningSkill, GetWFTSkillLevel(GetSkillName(runningSkill).Trim))
                 Else
-                    skill = String.Format("{0}{1}(+){2}**************", skill, vbNewLine, runningSkill)
+                    skill = String.Format("{0}{1}(+){2}", skill, vbNewLine, runningSkill)
                 End If
             Next
         End If
@@ -283,9 +284,9 @@ Public Class CompareHelper
             For Each runningSkill In removedSkillList
                 _cts.Token.ThrowIfCancellationRequested()
                 If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(runningSkill).Trim, StringComparer.OrdinalIgnoreCase) Then
-                    skill = String.Format("{0}{1}(-){2}", skill, vbNewLine, runningSkill)
+                    skill = String.Format("{0}{1}(-){2}{3}", skill, vbNewLine, runningSkill, GetWFTSkillLevel(GetSkillName(runningSkill).Trim))
                 Else
-                    skill = String.Format("{0}{1}(-){2}**************", skill, vbNewLine, runningSkill)
+                    skill = String.Format("{0}{1}(-){2}", skill, vbNewLine, runningSkill)
                 End If
             Next
         End If
@@ -308,9 +309,9 @@ Public Class CompareHelper
             For Each runningSkill In skillList
                 _cts.Token.ThrowIfCancellationRequested()
                 If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(runningSkill).Trim, StringComparer.OrdinalIgnoreCase) Then
-                    skill = String.Format("{0}{1}{2}", skill, vbNewLine, runningSkill)
+                    skill = String.Format("{0}{1}{2}{3}", skill, vbNewLine, runningSkill, GetWFTSkillLevel(GetSkillName(runningSkill).Trim))
                 Else
-                    skill = String.Format("{0}{1}{2}**************", skill, vbNewLine, runningSkill)
+                    skill = String.Format("{0}{1}{2}", skill, vbNewLine, runningSkill)
                 End If
             Next
         End If
@@ -330,15 +331,15 @@ Public Class CompareHelper
                 Dim delta As Decimal = Val(newScore) - Val(oldScore)
                 If delta > 0 Then
                     If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(newSkillScore).Trim, StringComparer.OrdinalIgnoreCase) Then
-                        ret = String.Format("(+){0}({1})", GetSkillName(newSkillScore), delta)
+                        ret = String.Format("(+){0}({1}){2}", GetSkillName(newSkillScore), delta, GetWFTSkillLevel(GetSkillName(newSkillScore).Trim))
                     Else
-                        ret = String.Format("(+){0}({1})**************", GetSkillName(newSkillScore), delta)
+                        ret = String.Format("(+){0}({1})", GetSkillName(newSkillScore), delta)
                     End If
                 ElseIf delta < 0 Then
                     If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(newSkillScore).Trim, StringComparer.OrdinalIgnoreCase) Then
-                        ret = String.Format("(-){0}({1})", GetSkillName(newSkillScore), Math.Abs(delta))
+                        ret = String.Format("(-){0}({1}){2}", GetSkillName(newSkillScore), Math.Abs(delta), GetWFTSkillLevel(GetSkillName(newSkillScore).Trim))
                     Else
-                        ret = String.Format("(-){0}({1})**************", GetSkillName(newSkillScore), Math.Abs(delta))
+                        ret = String.Format("(-){0}({1})", GetSkillName(newSkillScore), Math.Abs(delta))
                     End If
                 End If
             Else
@@ -346,15 +347,15 @@ Public Class CompareHelper
                 Dim newSubScore As String = newScore(1)
                 If Val(newSubScore) > Val(oldSubScore) Then
                     If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(newSkillScore).Trim, StringComparer.OrdinalIgnoreCase) Then
-                        ret = String.Format("(+){0}", newSkillScore)
+                        ret = String.Format("(+){0}{1}", newSkillScore, GetWFTSkillLevel(GetSkillName(newSkillScore).Trim))
                     Else
-                        ret = String.Format("(+){0}**************", newSkillScore)
+                        ret = String.Format("(+){0}", newSkillScore)
                     End If
                 ElseIf Val(newSubScore) < Val(oldSubScore) Then
                     If mappingList IsNot Nothing AndAlso mappingList.Contains(GetSkillName(newSkillScore).Trim, StringComparer.OrdinalIgnoreCase) Then
-                        ret = String.Format("(-){0}", newSkillScore)
+                        ret = String.Format("(-){0}{1}", newSkillScore, GetWFTSkillLevel(GetSkillName(newSkillScore).Trim))
                     Else
-                        ret = String.Format("(-){0}**************", newSkillScore)
+                        ret = String.Format("(-){0}", newSkillScore)
                     End If
                 End If
             End If
@@ -497,7 +498,7 @@ Public Class CompareHelper
         Return ret
     End Function
 
-    Private Function ReadRequiedMappingFile(ByVal fileName As String) As List(Of String)
+    Private Function ReadRequiedMappingFile(ByVal fileName As String, ByRef mappingInformation As List(Of MappingDetails)) As List(Of String)
         Dim ret As List(Of String) = Nothing
         OnHeartbeat(String.Format("Opening Mapping File"))
         Using xl As New ExcelHelper(fileName, ExcelHelper.ExcelOpenStatus.OpenExistingForReadWrite, ExcelHelper.ExcelSaveType.XLS_XLSX, _cts)
@@ -521,6 +522,10 @@ Public Class CompareHelper
                     Dim skillName As String = xl.GetData(skillRowColumnNumber.Key + 1, skillRowColumnNumber.Value)
                     If skillName IsNot Nothing AndAlso skillName <> "" Then
                         OnHeartbeatSub(String.Format("Reading mapping skills data # {0}/{1}", sheetCounter, allSheets.Count))
+                        Dim skillLevelColumnNumber As Integer = xl.FindAll(_mappingFileSchema("WFT Skill Level"), xl.GetNamedRange(1, 256, 1, 256), True).FirstOrDefault.Value
+                        Dim skillLevelLastRow As Integer = xl.GetLastRow(skillLevelColumnNumber)
+                        Dim itPiFirstRow As Integer = xl.FindAll("I T Pi", xl.GetNamedRange(2, skillLevelLastRow, skillLevelColumnNumber, 1), True).FirstOrDefault.Key
+
                         Dim subSkillColumnNumber As Integer = xl.FindAll(_mappingFileSchema("WFT Subskills"), xl.GetNamedRange(1, 256, 1, 256), True).FirstOrDefault.Value
                         Dim subSkillLastRow As Integer = xl.GetLastRow(subSkillColumnNumber)
                         For subskillRow As Integer = 2 To subSkillLastRow
@@ -534,6 +539,18 @@ Public Class CompareHelper
                                     If nomenclature IsNot Nothing AndAlso nomenclature <> "" Then
                                         If ret Is Nothing Then ret = New List(Of String)
                                         ret.Add(nomenclature.Trim)
+
+                                        Dim mappingData As MappingDetails = New MappingDetails
+                                        mappingData.Nomenclature = nomenclature.Trim
+                                        mappingData.SubSkill = subskill.Trim
+                                        mappingData.Practice = skillName
+                                        If subskillRow >= itPiFirstRow Then
+                                            mappingData.SkillLevel = "I T Pi"
+                                        Else
+                                            mappingData.SkillLevel = "Foundation"
+                                        End If
+                                        If mappingInformation Is Nothing Then mappingInformation = New List(Of MappingDetails)
+                                        mappingInformation.Add(mappingData)
                                     End If
                                 Next
                             End If
@@ -548,6 +565,21 @@ Public Class CompareHelper
 
             OnHeartbeat(String.Format("Closing Mapping File"))
         End Using
+        Return ret
+    End Function
+
+    Private Function GetWFTSkillLevel(ByVal nomenclature As String) As String
+        Dim ret As String = "************************"
+        If _mappingInfos IsNot Nothing AndAlso _mappingInfos.Count > 0 Then
+            Dim skill As MappingDetails = _mappingInfos.Find(Function(x)
+                                                                 Return x.Nomenclature.ToUpper = nomenclature.ToUpper
+                                                             End Function)
+            If skill IsNot Nothing Then
+                Dim level As String = skill.SkillLevel
+                If level = "Foundation" Then level = "F"
+                ret = String.Format("*******({0})*******", level)
+            End If
+        End If
         Return ret
     End Function
 

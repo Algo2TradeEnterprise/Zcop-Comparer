@@ -53,3 +53,10 @@ Public Class Difference
     Public Property Updated As List(Of String)
     Public Property OverallChange As String
 End Class
+
+Public Class MappingDetails
+    Public Property Nomenclature As String
+    Public Property SubSkill As String
+    Public Property SkillLevel As String
+    Public Property Practice As String
+End Class
