@@ -406,14 +406,14 @@ Public Class CompareHelper
 
             Dim allSheets As List(Of String) = xlHlpr.GetExcelSheetsName()
             If allSheets IsNot Nothing AndAlso allSheets.Count > 0 Then
-                Dim dataSheet As String = Nothing
-                For Each runningSheet In allSheets
-                    _cts.Token.ThrowIfCancellationRequested()
-                    If runningSheet.Contains("BFSI") Then
-                        dataSheet = runningSheet
-                        Exit For
-                    End If
-                Next
+                Dim dataSheet As String = allSheets.FirstOrDefault
+                'For Each runningSheet In allSheets
+                '    _cts.Token.ThrowIfCancellationRequested()
+                '    If runningSheet.Contains("BFSI") Then
+                '        dataSheet = runningSheet
+                '        Exit For
+                '    End If
+                'Next
                 If dataSheet IsNot Nothing Then
                     xlHlpr.SetActiveSheet(dataSheet)
                     OnHeartbeat(String.Format("Checking schema of {0} File", fileType))
